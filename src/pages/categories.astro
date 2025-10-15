@@ -1,0 +1,57 @@
+---
+// src/pages/categories.astro
+import { request, gql } from 'graphql-request';
+
+const endpoint = 'https://example.com/graphql';
+
+const query = gql`
+  {
+    categories {
+      nodes {
+        id
+        name
+        slug
+        posts {
+          nodes {
+            id
+            title
+            excerpt
+            slug
+            featuredImage {
+              node {
+                sourceUrl
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const data = await request(endpoint, query);
+const categories = data.categories.nodes;
+---
+
+<h1>Categories</h1>
+
+{categories.map(cat => (
+  <section>
+    <h2><a href={`/categories/${cat.slug}`}>{cat.name}</a></h2>
+    {cat.posts.nodes.length === 0 ? (
+      <p>No posts yet.</p>
+    ) : (
+      <ul>
+        {cat.posts.nodes.map(post => (
+          <li>
+            <h3><a href={`/posts/${post.slug}`}>{post.title}</a></h3>
+            {post.featuredImage?.node?.sourceUrl && (
+              <img src={post.featuredImage.node.sourceUrl} alt={post.title} style="max-width: 200px;" />
+            )}
+            <div innerHTML={post.excerpt}></div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+))}

@@ -10,6 +10,15 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
 let res = await fetch("https://wp.boekenwuurm.nl/wp-json/wp/v2/posts");
 let posts = await res.json();
 
+let catRes = await fetch("https://wp.boekenwuurm.nl/wp-json/wp/v2/categories");
+let categories = await catRes.json();
+
+// Create a lookup map: category ID → category object
+let categoryMap = {};
+for (const cat of categories) {
+  categoryMap[cat.id] = cat;
+}
+
 ---
 
 <!doctype html>
@@ -27,6 +36,16 @@ let posts = await res.json();
 						<h2>
 							<a href={`/${post.slug}/`} set:html={post.title.rendered} />
 						</h2>
+						<div class="categories">
+    {
+      post.categories.map(catId => {
+        const cat = categoryMap[catId];
+        return cat && (
+          <span class="category-tag">{cat.name}</span>
+        );
+      })
+    }
+  </div>
 						<div set:html={post.excerpt.rendered}></div>
 						</article>
 					))
