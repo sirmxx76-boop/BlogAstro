@@ -1,0 +1,31 @@
+# Build-Ausgabe
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+
+# Generierte Dateien
+.DS_Store
+
+# Umgebungsvariablen
+.env
+.env.production
+
+# Cache-Verzeichnisse
+.cache/
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# Log-Dateien
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Betriebssystem-spezifisch
+.DS_Store
+Thumbs.db
+

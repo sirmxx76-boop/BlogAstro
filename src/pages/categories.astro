@@ -1,57 +1,272 @@
 ---
-// src/pages/categories.astro
-import { request, gql } from 'graphql-request';
+import WordPressLayout from '../layouts/WordPressLayout.astro';
+import { getCategories } from '../lib/wordpress';
 
-const endpoint = 'https://example.com/graphql';
+const categories = await getCategories();
+const categoriesWithPosts = categories.filter((cat) => cat.count > 0);
 
-const query = gql`
-  {
-    categories {
-      nodes {
-        id
-        name
-        slug
-        posts {
-          nodes {
-            id
-            title
-            excerpt
-            slug
-            featuredImage {
-              node {
-                sourceUrl
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
+// Category Icons Map (kannst du erweitern)
+const categoryIcons = {
+  borduren: '🧵',
+  crafts: '🎨',
+  events: '🎉',
+  'huis-domotica': '🏠',
+  huisdomotica: '🏠',
+  meta: '📝',
+  projecten: '⚡',
+  schrijven: '✍️',
+  wip: '🚧',
+};
 
-const data = await request(endpoint, query);
-const categories = data.categories.nodes;
+function getCategoryIcon(slug: string) {
+  return categoryIcons[slug.toLowerCase()] || '📁';
+}
 ---
 
-<h1>Categories</h1>
+<WordPressLayout title="Categorieën" description="Ontdek alle blog categorieën">
+  <div class="categories-page">
+    <header class="page-header">
+      <h1>Categorieën</h1>
+      <p class="page-description">
+        Browse door {categoriesWithPosts.length} categorieën met handgemaakte projecten, tutorials en
+        verhalen
+      </p>
+    </header>
 
-{categories.map(cat => (
-  <section>
-    <h2><a href={`/categories/${cat.slug}`}>{cat.name}</a></h2>
-    {cat.posts.nodes.length === 0 ? (
-      <p>No posts yet.</p>
-    ) : (
-      <ul>
-        {cat.posts.nodes.map(post => (
-          <li>
-            <h3><a href={`/posts/${post.slug}`}>{post.title}</a></h3>
-            {post.featuredImage?.node?.sourceUrl && (
-              <img src={post.featuredImage.node.sourceUrl} alt={post.title} style="max-width: 200px;" />
-            )}
-            <div innerHTML={post.excerpt}></div>
-          </li>
-        ))}
-      </ul>
-    )}
-  </section>
-))}
+    <div class="categories-grid">
+      {
+        categoriesWithPosts.map((cat) => (
+          <a href={`/category/${cat.slug}/`} class="category-card card">
+            <div class="category-icon">{getCategoryIcon(cat.slug)}</div>
+
+            <div class="category-content">
+              <h2>{cat.name}</h2>
+
+              {cat.description && <p class="category-description">{cat.description}</p>}
+
+              <div class="category-meta">
+                <span class="post-count">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M2 3a1 1 0 011-1h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3z"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                    <path
+                      d="M5 6h6M5 9h6M5 12h3"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  {cat.count} {cat.count === 1 ? 'post' : 'posts'}
+                </span>
+
+                <span class="view-arrow">
+                  Bekijk posts
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M6 3l5 5-5 5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</WordPressLayout>
+
+<style>
+  .categories-page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .page-header h1 {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .page-description {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--spacing-lg);
+  }
+
+  .category-card {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--transition-base);
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--primary), var(--accent));
+    transform: scaleY(0);
+    transition: transform var(--transition-base);
+    transform-origin: top;
+  }
+
+  .category-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-light);
+  }
+
+  .category-card:hover::before {
+    transform: scaleY(1);
+  }
+
+  .category-icon {
+    font-size: 3rem;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(126, 87, 194, 0.1), rgba(255, 64, 129, 0.1));
+    border-radius: var(--radius-lg);
+    transition: transform var(--transition-base);
+  }
+
+  .category-card:hover .category-icon {
+    transform: scale(1.1) rotate(5deg);
+  }
+
+  .category-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .category-card h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--primary);
+    transition: color var(--transition-fast);
+  }
+
+  .category-card:hover h2 {
+    color: var(--accent);
+  }
+
+  .category-description {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .category-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: var(--spacing-sm);
+  }
+
+  .post-count {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .post-count svg {
+    opacity: 0.7;
+  }
+
+  .view-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: gap var(--transition-base);
+  }
+
+  .category-card:hover .view-arrow {
+    gap: var(--spacing-sm);
+  }
+
+  .view-arrow svg {
+    transition: transform var(--transition-base);
+  }
+
+  .category-card:hover .view-arrow svg {
+    transform: translateX(4px);
+  }
+
+  @media (max-width: 768px) {
+    .page-header h1 {
+      font-size: 2rem;
+    }
+
+    .page-description {
+      font-size: 1rem;
+    }
+
+    .categories-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+
+    .category-card {
+      padding: var(--spacing-md);
+    }
+
+    .category-icon {
+      font-size: 2.5rem;
+      width: 56px;
+      height: 56px;
+    }
+
+    .category-card h2 {
+      font-size: 1.25rem;
+    }
+  }
+</style>
