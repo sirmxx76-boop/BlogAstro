@@ -7,6 +7,12 @@ import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://example.com',
+  site: 'https://boekenwuurm.nl',
+  image: {
+    remotePatterns: [{
+      protocol: 'https',
+      hostname: 'wp.boekenwuurm.nl',
+    }],
+  },
 	integrations: [mdx(), sitemap()],
 });

@@ -1,0 +1,201 @@
+---
+import { Image } from 'astro:assets';
+import WordPressLayout from '../../layouts/WordPressLayout.astro';
+import { getCategories, getPostsByCategory } from '../../lib/wordpress';
+
+export async function getStaticPaths() {
+  const categories = await getCategories();
+
+  return categories
+    .filter((cat) => cat.count > 0)
+    .map((cat) => ({
+      params: { slug: cat.slug },
+      props: { category: cat },
+    }));
+}
+
+const { category } = Astro.props;
+const posts = await getPostsByCategory(category.id);
+---
+
+<WordPressLayout
+  title={`Categorie: ${category.name}`}
+  description={`Alle posts in categorie ${category.name}`}
+>
+  <div class="category-page">
+    <header class="category-header">
+      <a href="/categories/" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path
+            d="M10 3l-5 5 5 5"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        Terug naar alle categorieën
+      </a>
+      <h1>{category.name}</h1>
+      <p class="category-description">
+        {category.count}
+        {category.count === 1 ? 'post' : 'posts'}
+      </p>
+    </header>
+
+    <div class="posts-grid">
+      {
+        posts.map((post) => {
+          const featuredImage = post._embedded?.['wp:featuredmedia']?.[0];
+          return (
+            <article class="post-card card">
+              {featuredImage?.source_url && (
+                <div class="post-image">
+                  <a href={`/${post.slug}/`}>
+                    <Image
+                      src={featuredImage.source_url}
+                      alt={featuredImage.alt_text || post.title.rendered}
+                      width={640}
+                      height={360}
+                      inferSize
+                      loading="lazy"
+                      class="featured-img"
+                    />
+                  </a>
+                </div>
+              )}
+              <div class="post-content">
+                <h2>
+                  <a href={`/${post.slug}/`}>{post.title.rendered}</a>
+                </h2>
+                <div class="excerpt" set:html={post.excerpt.rendered} />
+                <a href={`/${post.slug}/`} class="read-more">
+                  Lees meer →
+                </a>
+              </div>
+            </article>
+          );
+        })
+      }
+    </div>
+  </div>
+</WordPressLayout>
+
+<style>
+  .category-page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .category-header {
+    margin-bottom: var(--spacing-xl);
+    text-align: center;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .back-link:hover {
+    color: var(--primary);
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--primary);
+  }
+
+  .category-description {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
+  .posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--spacing-lg);
+  }
+
+  .post-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .post-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--divider);
+  }
+
+  .featured-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+  }
+
+  .post-card:hover .featured-img {
+    transform: scale(1.05);
+  }
+
+  .post-content {
+    padding: var(--spacing-md);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  h2 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 1.35rem;
+    line-height: 1.4;
+  }
+
+  h2 a {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  h2 a:hover {
+    color: var(--primary);
+  }
+
+  .excerpt {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+    flex: 1;
+  }
+
+  .read-more {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity var(--transition-fast);
+    align-self: flex-start;
+  }
+
+  .read-more:hover {
+    opacity: 0.7;
+  }
+
+  @media (max-width: 768px) {
+    h1 {
+      font-size: 2rem;
+    }
+
+    .posts-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

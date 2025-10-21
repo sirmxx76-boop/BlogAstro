@@ -1,35 +1,121 @@
 ---
-import AboutHeroImage from "../assets/blog-placeholder-about.jpg";
-import Layout from "../layouts/BlogPost.astro";
+import WordPressLayout from '../layouts/WordPressLayout.astro';
+import AboutHeroImage from '../assets/blog-placeholder-about.jpg';
+
+const pageTitle = 'Over mij';
+const pageDescription =
+  'Leer meer over Christel, ook wel bekend als Boekenwuurm - natuurkundige, hacker, boekenworm en maker.';
 ---
 
-<Layout
-  title="Over mij"
-  description="Over mij"
-  pubDate={new Date("October 15 2025")}
-  heroImage={AboutHeroImage}
->
-  <main></main>
-  <p>Hoi! Ik ben Christel, ook wel bekent als Boekenwuurm.</p>
+<WordPressLayout title={pageTitle} description={pageDescription}>
+  <article class="about-page">
+    <header class="hero">
+      <img src={AboutHeroImage.src} alt="Christel - Boekenwuurm" class="hero-image" />
+      <h1>{pageTitle}</h1>
+    </header>
 
-  <p>
-    Van huis uit ben ik ben natuurkundige, hacker, fan van paars, lees ik veel
-    boeken, houd van musicals, camera’s en printers.
-  </p>
+    <section class="intro">
+      <p>Hoi! Ik ben Christel, ook wel bekend als Boekenwuurm.</p>
+    </section>
 
-  <p>
-    Vaak ben ik te vinden bij Hackalot, wat ik mede opgericht heb in 2017. Ik
-    heb verder in projectleiding van WHY2025 en MCH2022 gezeten, en was bij
-    team:Infodesk bij SHA2017.
-  </p>
+    <section class="about-me">
+      <h2>Wie ben ik?</h2>
+      <p>
+        Van huis uit ben ik natuurkundige, hacker, fan van paars, lees ik veel boeken, houd van
+        musicals, camera's en printers.
+      </p>
+    </section>
 
-  <p>
-    In het dagelijks leven doe ik dingen met camera’s en probeer ik kleur zo
-    goed mogenlijk weer te kunnen geven.
-  </p>
+    <section class="community">
+      <h2>Community & Evenementen</h2>
+      <p>
+        Vaak ben ik te vinden bij <a
+          href="https://hackalot.nl"
+          target="_blank"
+          rel="noopener noreferrer">Hackalot</a
+        >, wat ik mede opgericht heb in 2017. Ik heb verder in projectleiding van WHY2025 en MCH2022
+        gezeten, en was bij team:Infodesk bij SHA2017.
+      </p>
+    </section>
 
-  <p>
-    Ik houd er van de wereld mooier, beter en veiliger te maken. Mooie dingen
-    maken is een belangrijk ding, net als samen dingen bouwen.
-  </p>
-</Layout>
+    <section class="work">
+      <h2>Wat ik doe</h2>
+      <p>
+        In het dagelijks leven doe ik dingen met camera's en probeer ik kleur zo goed mogelijk weer
+        te kunnen geven.
+      </p>
+    </section>
+
+    <section class="values">
+      <h2>Mijn Passie</h2>
+      <p>
+        Ik houd ervan de wereld mooier, beter en veiliger te maken. Mooie dingen maken is een
+        belangrijk ding, net als samen dingen bouwen.
+      </p>
+    </section>
+  </article>
+</WordPressLayout>
+
+<style>
+  .about-page {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .hero-image {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin: 0;
+  }
+
+  section {
+    margin-bottom: 2.5rem;
+  }
+
+  h2 {
+    color: rgb(var(--accent));
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    line-height: 1.8;
+    font-size: 1.1rem;
+  }
+
+  a {
+    color: rgb(var(--accent));
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  a:hover {
+    border-bottom-color: rgb(var(--accent));
+  }
+
+  @media (max-width: 720px) {
+    h1 {
+      font-size: 2rem;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+    }
+
+    p {
+      font-size: 1rem;
+    }
+  }
+</style>

@@ -2,23 +2,77 @@
 import type { HTMLAttributes } from 'astro/types';
 
 type Props = HTMLAttributes<'a'>;
-
 const { href, class: className, ...props } = Astro.props;
-const pathname = Astro.url.pathname.replace(import.meta.env.BASE_URL, '');
-const subpath = pathname.match(/[^\/]+/g);
-const isActive = href === pathname || href === '/' + (subpath?.[0] || '');
+
+// Sicherstellen dass href ein String ist
+const hrefString = (href || '/').toString();
+const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
+const cleanHref = hrefString.replace(/\/$/, '') || '/';
+
+const isHome = cleanHref === '/' && pathname === '/';
+const isExactMatch = cleanHref === pathname;
+const isSectionMatch = cleanHref !== '/' && pathname.startsWith(cleanHref) && cleanHref.length > 1;
+
+const isActive = isHome || isExactMatch || isSectionMatch;
 ---
 
-<a href={href} class:list={[className, { active: isActive }]} {...props}>
-	<slot />
+<a
+  href={href}
+  aria-current={isActive ? 'page' : undefined}
+  class:list={['nav-link', { active: isActive }, className]}
+  {...props}
+>
+  <slot />
 </a>
+
 <style>
-	a {
-		display: inline-block;
-		text-decoration: none;
-	}
-	a.active {
-		font-weight: bolder;
-		text-decoration: underline;
-	}
+  .nav-link {
+    position: relative;
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    letter-spacing: 0.025em;
+  }
+
+  .nav-link::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 80%;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: transform var(--transition-base);
+  }
+
+  .nav-link:hover {
+    background: rgba(126, 87, 194, 0.08);
+    color: var(--primary);
+  }
+
+  .nav-link:hover::before {
+    transform: translateX(-50%) scaleX(1);
+  }
+
+  .nav-link.active {
+    background: rgba(126, 87, 194, 0.12);
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .nav-link.active::before {
+    transform: translateX(-50%) scaleX(1);
+  }
+
+  .nav-link:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
 </style>

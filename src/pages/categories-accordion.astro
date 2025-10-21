@@ -1,0 +1,90 @@
+---
+import WordPressLayout from '../layouts/WordPressLayout.astro';
+import { getCategories, getPostsByCategory } from '../lib/wordpress';
+
+const categories = await getCategories();
+const categoriesWithPosts = await Promise.all(
+  categories
+    .filter((cat) => cat.count > 0)
+    .map(async (cat) => {
+      const posts = await getPostsByCategory(cat.id);
+      return { ...cat, posts };
+    })
+);
+---
+
+<WordPressLayout title="Categorieën" description="Alle blog categorieën">
+  <div class="categories-container">
+    <h1>Categorieën</h1>
+
+    {
+      categoriesWithPosts.map((cat) => (
+        <details class="category-accordion">
+          <summary>
+            <h2>{cat.name}</h2>
+            <span class="post-count">{cat.count} posts</span>
+          </summary>
+
+          <div class="posts-grid">
+            {cat.posts.map((post) => {
+              const featuredImage = post._embedded?.['wp:featuredmedia']?.[0];
+              return (
+                <article class="post-card">
+                  {featuredImage?.source_url && (
+                    <img
+                      src={featuredImage.source_url}
+                      alt={featuredImage.alt_text || post.title.rendered}
+                      class="post-thumbnail"
+                    />
+                  )}
+                  <h3>
+                    <a href={`/${post.slug}/`}>{post.title.rendered}</a>
+                  </h3>
+                </article>
+              );
+            })}
+          </div>
+        </details>
+      ))
+    }
+  </div>
+</WordPressLayout>
+
+<style>
+  .category-accordion {
+    margin-bottom: 1.5rem;
+    border: 2px solid rgb(var(--gray-light));
+    border-radius: 8px;
+  }
+
+  summary {
+    padding: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+  }
+
+  summary:hover {
+    background: rgb(var(--gray-light));
+  }
+
+  summary h2 {
+    margin: 0;
+  }
+
+  .posts-grid {
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .post-thumbnail {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+</style>

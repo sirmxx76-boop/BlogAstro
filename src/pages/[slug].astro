@@ -1,0 +1,145 @@
+---
+import { Image } from 'astro:assets';
+import WordPressLayout from "../layouts/WordPressLayout.astro";
+import FormattedDate from "../components/FormattedDate.astro";
+import { getPosts } from "../lib/wordpress";
+import { extractGalleryImages } from "../lib/extractGallery";
+import type { WordPressPost } from "../types/wordpress";
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post: WordPressPost) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: WordPressPost;
+}
+
+const { post } = Astro.props;
+const featuredImage = post._embedded?.['wp:featuredmedia']?.[0];
+const galleryImages = extractGalleryImages(post.content.rendered);
+let cleanedContent = post.content.rendered;
+---
+
+<WordPressLayout title={post.title.rendered} description={post.excerpt.rendered}>
+  <article class="post-detail">
+    {featuredImage?.source_url && (
+      <div class="hero-image">
+        <Image
+          src={featuredImage.source_url}
+          alt={featuredImage.alt_text || post.title.rendered}
+          width={1200}
+          height={675}
+          inferSize
+          class="hero-img"
+        />
+      </div>
+    )}
+    
+    <header class="post-header">
+      <h1>{post.title.rendered}</h1>
+      <div class="post-meta">
+        <FormattedDate date={new Date(post.date)} />
+        {post._embedded?.['wp:term']?.[0] && (
+          <div class="categories">
+            {post._embedded['wp:term'][0].map((cat) => (
+              <a href={`/category/${cat.slug}/`} class="category-tag">
+                {cat.name}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </header>
+    
+    <div class="post-content wp-content" set:html={cleanedContent} />
+  </article>
+</WordPressLayout>
+
+
+<style>
+  .post-detail {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero-image {
+    width: 100%;
+    margin-bottom: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .hero-img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .post-header {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .post-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    color: var(--text-secondary);
+  }
+
+  .categories {
+    display: flex;
+    gap: var(--spacing-xs);
+    flex-wrap: wrap;
+  }
+
+  .category-tag {
+    padding: 0.25rem 0.75rem;
+    background: var(--primary-light);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background var(--transition-fast);
+  }
+
+  .category-tag:hover {
+    background: var(--primary);
+  }
+
+  .post-content {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .gallery-section {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-xl);
+    border-top: 1px solid var(--divider);
+  }
+
+  .gallery-section h2 {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  /* Verstecke die WordPress-Galleries im Content, wenn du sie separat zeigst */
+  .post-content :global(.wp-block-gallery),
+  .post-content :global(.gallery) {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .post-header h1 {
+      font-size: 2rem;
+    }
+  }
+</style>
