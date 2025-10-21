@@ -5,6 +5,7 @@ import FormattedDate from "../components/FormattedDate.astro";
 import { getPosts } from "../lib/wordpress";
 import { extractGalleryImages } from "../lib/extractGallery";
 import type { WordPressPost } from "../types/wordpress";
+import ImageGallery from '../components/ImageGallery.astro';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
@@ -56,6 +57,14 @@ let cleanedContent = post.content.rendered;
     </header>
     
     <div class="post-content wp-content" set:html={cleanedContent} />
+
+    {galleryImages.length > 0 && (
+      <section class="gallery-section">
+        <h2>Fotogalerij</h2>
+        <ImageGallery images={galleryImages} />
+      </section>
+    )}
+
   </article>
 </WordPressLayout>
 
