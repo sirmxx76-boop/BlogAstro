@@ -16,11 +16,13 @@ export interface WordPressPost {
       source_url: string;
       alt_text: string;
     }>;
-    'wp:term'?: Array<Array<{
-      id: number;
-      name: string;
-      slug: string;
-    }>>;
+    'wp:term'?: Array<
+      Array<{
+        id: number;
+        name: string;
+        slug: string;
+      }>
+    >;
   };
 }
 
@@ -30,4 +32,10 @@ export interface WordPressCategory {
   slug: string;
   count: number;
   description?: string;
+}
+
+export interface GalleryImage {
+  url: string;
+  alt: string;
+  id?: string;
 }

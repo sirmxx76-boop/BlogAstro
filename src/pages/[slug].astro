@@ -1,10 +1,11 @@
 ---
+// pages/blog/[slug].astro
 import { Image } from 'astro:assets';
-import WordPressLayout from "../layouts/WordPressLayout.astro";
-import FormattedDate from "../components/FormattedDate.astro";
-import { getPosts } from "../lib/wordpress";
-import { extractGalleryImages } from "../lib/extractGallery";
-import type { WordPressPost } from "../types/wordpress";
+import WordPressLayout from '../layouts/WordPressLayout.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import { getPosts } from '../lib/wordpress';
+import { decodeHtmlEntities } from '../lib/htmlDecode'; // WICHTIG: Import hinzufügen
+import type { WordPressPost } from '../types/wordpress';
 import ImageGallery from '../components/ImageGallery.astro';
 
 export async function getStaticPaths() {
@@ -21,53 +22,158 @@ interface Props {
 
 const { post } = Astro.props;
 const featuredImage = post._embedded?.['wp:featuredmedia']?.[0];
-const galleryImages = extractGalleryImages(post.content.rendered);
-let cleanedContent = post.content.rendered;
+
+interface ContentSegment {
+  type: 'text' | 'gallery';
+  content: string;
+  images?: Array<{ url: string; alt: string; caption?: string }>;
+}
+
+function segmentContent(html: string): ContentSegment[] {
+  const decodedHtml = decodeHtmlEntities(html);
+
+  const segments: ContentSegment[] = [];
+
+  const blockPattern =
+    /<figure class="wp-block-gallery[^"]*"[^>]*>.*?<\/figure>|<figure[^>]*class="[^"]*wp-block-image[^"]*"[^>]*>.*?<\/figure>/gs;
+
+  let lastIndex = 0;
+  const matches = [...decodedHtml.matchAll(new RegExp(blockPattern))];
+
+  if (matches.length === 0) {
+    return [{ type: 'text', content: decodedHtml }];
+  }
+
+  let pendingImages: Array<{ url: string; alt: string; caption?: string }> = [];
+
+  matches.forEach((match, idx) => {
+    if (match.index! > lastIndex) {
+      const textContent = decodedHtml.substring(lastIndex, match.index).trim();
+
+      const isOnlyWhitespace = textContent.replace(/\s+/g, '').length === 0;
+
+      if (textContent && !isOnlyWhitespace) {
+        if (pendingImages.length > 0) {
+          segments.push({ type: 'gallery', content: '', images: pendingImages });
+          pendingImages = [];
+        }
+        segments.push({ type: 'text', content: textContent });
+      }
+    }
+
+    const blockHtml = match[0];
+
+    if (blockHtml.includes('wp-block-gallery')) {
+      const images: Array<{ url: string; alt: string; caption?: string }> = [];
+      const figurePattern = /<figure[^>]*class="[^"]*wp-block-image[^"]*"[^>]*>.*?<\/figure>/gs;
+      const figureMatches = [...blockHtml.matchAll(new RegExp(figurePattern))];
+
+      figureMatches.forEach((figMatch) => {
+        const figureHtml = figMatch[0];
+        const imgMatch = figureHtml.match(/<img[^>]+src="([^"]+)"[^>]*(?:alt="([^"]*)")?[^>]*>/);
+        const captionMatch = figureHtml.match(/<figcaption[^>]*>(.*?)<\/figcaption>/s);
+
+        if (imgMatch) {
+          let imageUrl = imgMatch[1];
+          imageUrl = imageUrl.replace(/-\d+x\d+(\.[a-z]+)$/i, '$1');
+
+          images.push({
+            url: imageUrl,
+            alt: imgMatch[2] || '',
+            caption: captionMatch ? captionMatch[1].replace(/<[^>]*>/g, '').trim() : undefined,
+          });
+        }
+      });
+
+      pendingImages.push(...images);
+    } else {
+      const imgMatch = blockHtml.match(/<img[^>]+src="([^"]+)"[^>]*(?:alt="([^"]*)")?[^>]*>/);
+      const captionMatch = blockHtml.match(/<figcaption[^>]*>(.*?)<\/figcaption>/s);
+
+      if (imgMatch) {
+        let imageUrl = imgMatch[1];
+        imageUrl = imageUrl.replace(/-\d+x\d+(\.[a-z]+)$/i, '$1');
+
+        pendingImages.push({
+          url: imageUrl,
+          alt: imgMatch[2] || '',
+          caption: captionMatch ? captionMatch[1].replace(/<[^>]*>/g, '').trim() : undefined,
+        });
+      }
+    }
+
+    lastIndex = match.index! + match[0].length;
+  });
+
+  if (pendingImages.length > 0) {
+    segments.push({ type: 'gallery', content: '', images: pendingImages });
+  }
+
+  if (lastIndex < decodedHtml.length) {
+    const remainingContent = decodedHtml.substring(lastIndex).trim();
+    if (remainingContent) {
+      segments.push({ type: 'text', content: remainingContent });
+    }
+  }
+
+  return segments;
+}
+
+const contentSegments = segmentContent(post.content.rendered);
 ---
 
 <WordPressLayout title={post.title.rendered} description={post.excerpt.rendered}>
   <article class="post-detail">
-    {featuredImage?.source_url && (
-      <div class="hero-image">
-        <Image
-          src={featuredImage.source_url}
-          alt={featuredImage.alt_text || post.title.rendered}
-          width={1200}
-          height={675}
-          inferSize
-          class="hero-img"
-        />
-      </div>
-    )}
-    
+    {
+      featuredImage?.source_url && (
+        <div class="hero-image">
+          <Image
+            src={featuredImage.source_url}
+            alt={featuredImage.alt_text || post.title.rendered}
+            width={1200}
+            height={675}
+            inferSize
+            class="hero-img"
+          />
+        </div>
+      )
+    }
+
     <header class="post-header">
       <h1>{post.title.rendered}</h1>
       <div class="post-meta">
         <FormattedDate date={new Date(post.date)} />
-        {post._embedded?.['wp:term']?.[0] && (
-          <div class="categories">
-            {post._embedded['wp:term'][0].map((cat) => (
-              <a href={`/category/${cat.slug}/`} class="category-tag">
-                {cat.name}
-              </a>
-            ))}
-          </div>
-        )}
+        {
+          post._embedded?.['wp:term']?.[0] && (
+            <div class="categories">
+              {post._embedded['wp:term'][0].map((cat) => (
+                <a href={`/category/${cat.slug}/`} class="category-tag">
+                  {cat.name}
+                </a>
+              ))}
+            </div>
+          )
+        }
       </div>
     </header>
-    
-    <div class="post-content wp-content" set:html={cleanedContent} />
 
-    {galleryImages.length > 0 && (
-      <section class="gallery-section">
-        <h2>Fotogalerij</h2>
-        <ImageGallery images={galleryImages} />
-      </section>
-    )}
-
+    <div class="post-content">
+      {
+        contentSegments.map((segment) => (
+          <Fragment>
+            {segment.type === 'gallery' ? (
+              <div class="gallery-wrapper">
+                <ImageGallery images={segment.images || []} />
+              </div>
+            ) : (
+              <div class="wp-content" set:html={segment.content} />
+            )}
+          </Fragment>
+        ))
+      }
+    </div>
   </article>
 </WordPressLayout>
-
 
 <style>
   .post-detail {
@@ -130,20 +236,8 @@ let cleanedContent = post.content.rendered;
     margin-bottom: var(--spacing-xl);
   }
 
-  .gallery-section {
-    margin-top: var(--spacing-xl);
-    padding-top: var(--spacing-xl);
-    border-top: 1px solid var(--divider);
-  }
-
-  .gallery-section h2 {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  /* Verstecke die WordPress-Galleries im Content, wenn du sie separat zeigst */
-  .post-content :global(.wp-block-gallery),
-  .post-content :global(.gallery) {
-    display: none;
+  .gallery-wrapper {
+    margin: 2rem 0;
   }
 
   @media (max-width: 768px) {
